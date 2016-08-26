@@ -1,5 +1,6 @@
 package com.example.sdk.kedaxunfei_voiceprint_example;
 
+import android.app.Activity;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -20,6 +21,7 @@ import com.iflytek.cloud.SpeechUtility;
 import com.iflytek.cloud.VerifierListener;
 import com.iflytek.cloud.VerifierResult;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -43,7 +45,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     SpeechListener delListener;
     //存储在云端的注册的声纹模型
     String vid;
-    String pwdText = "芝麻开门";
+    JSONArray passwordJsonArr;
+    String pwdText = "";
 
 
     @Override
@@ -76,9 +79,35 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
         });
-        speakerVerifier.setParameter(SpeechConstant.ISV_PWDT,""+1 );
+        speakerVerifier.setParameter(SpeechConstant.ISV_PWDT,""+3 );
         //空表示匿名用户
         //speakerVerifier.setParameter(SpeechConstant.AUTH_ID, "");
+        passwordListener = new SpeechListener() {
+            @Override
+            public void onEvent(int i, Bundle bundle) {
+            }
+            @Override
+            public void onBufferReceived(byte[] bytes) {
+                Log.v("----->","onBufferReceived password");
+                String res = new String(bytes);
+                Log.v("----->",""+res);
+                try{
+                    JSONObject object = new JSONObject(res);
+                    passwordJsonArr = object.getJSONArray("num_pwd");
+                    pwdText = passwordJsonArr.toString();
+                    textView.setText(pwdText);
+                }catch (JSONException e){
+                    e.printStackTrace();
+                }
+                Toast.makeText(MainActivity.this, "كۇنۇپكىنى بېسىپ تۇرۇپ ساننى بىردىن بىردىن ئالدىرىماي ئۇقۇڭ ، ئاۋال ئاۋازىڭىزنى تۇنىۋالاي ", Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onCompleted(SpeechError speechError) {
+
+            }
+        };
+        speakerVerifier.getPasswordList(passwordListener);
 
     }
 
@@ -92,9 +121,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 speakerVerifier.cancel();
                 speakerVerifier.setParameter(SpeechConstant.PARAMS, null);
                 speakerVerifier.setParameter(SpeechConstant.AUTH_ID, editText.getText().toString());
-                speakerVerifier.setParameter(SpeechConstant.ISV_PWDT,""+1 );
+                speakerVerifier.setParameter(SpeechConstant.ISV_PWDT,""+3 );
                 speakerVerifier.setParameter(SpeechConstant.ISV_SST, "train");
-                speakerVerifier.setParameter(SpeechConstant.ISV_PWD, "芝麻开门");
+                StringBuffer sb = new StringBuffer();
+                try {
+                    for(int i = 0; i < passwordJsonArr.length(); i++){
+                        if (i!=0){
+                            sb.append("-");
+                        }
+                        sb.append(passwordJsonArr.getString(1));
+                    }
+                }catch (JSONException e){
+                    e.printStackTrace();
+                }
+                speakerVerifier.setParameter(SpeechConstant.ISV_PWD, sb.toString()   );
                 //音频文件位置
                 speakerVerifier.setParameter(SpeechConstant.ISV_AUDIO_PATH, Environment.getExternalStorageDirectory().getAbsolutePath()+"/kedaxunfei-voiceprint-example.pcm");
                 //训练次数
@@ -126,9 +166,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         vid = verifierResult.vid;
                         //需要所两次
                         if (verifierResult.suc == 1){
-                            textView.setText("注册成功，在说一遍 ：芝麻开门");
+                            Toast.makeText(MainActivity.this,"注册成功，在说一遍", Toast.LENGTH_SHORT).show();
                         }else if (verifierResult.suc == 2){
-                            textView.setText("注册完毕，vid = "+vid);
+                            Toast.makeText(MainActivity.this,"注册完毕，vid = "+vid, Toast.LENGTH_SHORT).show();
                         }
 //                        Toast.makeText(MainActivity.this, "onResult train", Toast.LENGTH_SHORT).show();
                         Log.v("----->","onResult train");
@@ -154,8 +194,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
                 };
                 // start to register the voiceprint
-
-                textView.setText("开始注册，请说一遍 ：芝麻开门");
+                Toast.makeText(MainActivity.this,"开始注册，请说一遍", Toast.LENGTH_SHORT).show();
                 speakerVerifier.startListening(registerListener);
                 break;
             case R.id.verifyButton:
@@ -166,8 +205,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 speakerVerifier.setParameter(SpeechConstant.AUTH_ID, editText.getText().toString());
                 // train the speakerVerifier
                 speakerVerifier.setParameter(SpeechConstant.ISV_SST, "verify");
-                speakerVerifier.setParameter(SpeechConstant.ISV_PWDT, ""+1);
-                speakerVerifier.setParameter(SpeechConstant.ISV_PWD, "芝麻开门");
+                speakerVerifier.setParameter(SpeechConstant.ISV_PWDT, ""+3);
+                speakerVerifier.setParameter(SpeechConstant.ISV_PWD, pwdText);
                 //自由说要设置，其他不要
 //                speakerVerifier.setParameter(SpeechConstant.SAMPLE_RATE, "8000");
                 //
@@ -216,8 +255,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 speakerVerifier.setParameter(SpeechConstant.PARAMS, null);
                 //the user id which is matching to the voiceprint , a identifier of 6-18 digit
                 speakerVerifier.setParameter(SpeechConstant.AUTH_ID, editText.getText().toString());
-                speakerVerifier.setParameter(SpeechConstant.ISV_PWDT, ""+1);
-                speakerVerifier.setParameter(SpeechConstant.ISV_PWD, "芝麻开门");
+                speakerVerifier.setParameter(SpeechConstant.ISV_PWDT, ""+3);
+                speakerVerifier.setParameter(SpeechConstant.ISV_PWD,pwdText);
 //                speakerVerifier.setParameter(SpeechConstant.SAMPLE_RATE, "8000");
                 speakerVerifier.setParameter(SpeechConstant.ISV_VID, vid);
                 queListener = new SpeechListener() {
@@ -255,8 +294,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 speakerVerifier.setParameter(SpeechConstant.PARAMS, null);
                 //the user id which is matching to the voiceprint , a identifier of 6-18 digit
                 speakerVerifier.setParameter(SpeechConstant.AUTH_ID, editText.getText().toString());
-                speakerVerifier.setParameter(SpeechConstant.ISV_PWDT, ""+1);
-                speakerVerifier.setParameter(SpeechConstant.ISV_PWD, "芝麻开门");
+                speakerVerifier.setParameter(SpeechConstant.ISV_PWDT, ""+3);
+                speakerVerifier.setParameter(SpeechConstant.ISV_PWD, pwdText);
 //                speakerVerifier.setParameter(SpeechConstant.SAMPLE_RATE, "8000");
                 speakerVerifier.setParameter(SpeechConstant.ISV_VID, vid);
                 delListener = new SpeechListener() {
@@ -289,7 +328,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 speakerVerifier.sendRequest("del", editText.getText().toString(),delListener );
                 break;
             case R.id.getPasswordButton:
-                speakerVerifier.setParameter(SpeechConstant.ISV_PWDT,""+1 );
+                speakerVerifier.setParameter(SpeechConstant.ISV_PWDT,""+3 );
                 passwordListener = new SpeechListener() {
                     @Override
                     public void onEvent(int i, Bundle bundle) {
